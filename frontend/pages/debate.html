@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辯論詳情 - 辯論平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <div id="navbar"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- 辯論資訊 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h1 id="topicTitle" class="text-3xl font-bold text-gray-800 mb-2"></h1>
+                    <p id="topicDescription" class="text-gray-600"></p>
+                </div>
+                <span id="debateStatus" class="badge"></span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6 mt-6">
+                <div class="side-pros">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <img id="prosAvatar" src="" alt="正方頭像" class="w-12 h-12 rounded-full">
+                        <div>
+                            <div class="font-semibold text-blue-600" id="prosNickname"></div>
+                            <div class="text-sm text-gray-500">Rating: <span id="prosRating"></span></div>
+                        </div>
+                    </div>
+                    <div class="text-sm">
+                        <span class="text-gray-500">立場：</span>
+                        <span id="sidePros" class="font-semibold"></span>
+                    </div>
+                    <div id="prosConsecutive" class="text-sm text-green-600 mt-1"></div>
+                </div>
+
+                <div class="side-cons">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <img id="consAvatar" src="" alt="反方頭像" class="w-12 h-12 rounded-full">
+                        <div>
+                            <div class="font-semibold text-red-600" id="consNickname"></div>
+                            <div class="text-sm text-gray-500">Rating: <span id="consRating"></span></div>
+                        </div>
+                    </div>
+                    <div class="text-sm">
+                        <span class="text-gray-500">立場：</span>
+                        <span id="sideCons" class="font-semibold"></span>
+                    </div>
+                    <div id="consConsecutive" class="text-sm text-green-600 mt-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 回合列表 -->
+        <div id="roundsList" class="space-y-6">
+            <!-- 動態加載 -->
+        </div>
+    </div>
+
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/utils.js"></script>
+    <script>
+        checkAuth();
+
+        const debateId = new URLSearchParams(window.location.search).get('id');
+        let debateData = null;
+        let currentUser = getCurrentUser();
+
+        if (!debateId) {
+            showError('辯論 ID 無效');
+            setTimeout(() => window.location.href = 'debates.html', 2000);
+        }
+
+        async function loadDebate() {
+            try {
+                showLoading();
+                debateData = await DebateAPI.getDebate(debateId);
+
+                // 填充辯論資訊
+                document.getElementById('topicTitle').textContent = debateData.topic_title;
+                document.getElementById('topicDescription').textContent = debateData.topic_description;
+                document.getElementById('debateStatus').textContent = getStatusText(debateData.status);
+                document.getElementById('debateStatus').className = 'badge ' + getStatusColor(debateData.status);
+
+                // 正方資訊
+                document.getElementById('prosAvatar').src = debateData.pros_avatar || 'https://via.placeholder.com/48';
+                document.getElementById('prosNickname').textContent = debateData.pros_nickname;
+                document.getElementById('prosRating').textContent = debateData.pros_rating;
+                document.getElementById('sidePros').textContent = debateData.side_pros;
+                if (debateData.pros_consecutive_wins > 0) {
+                    document.getElementById('prosConsecutive').textContent = `連勝 ${debateData.pros_consecutive_wins} 回合`;
+                }
+
+                // 反方資訊
+                document.getElementById('consAvatar').src = debateData.cons_avatar || 'https://via.placeholder.com/48';
+                document.getElementById('consNickname').textContent = debateData.cons_nickname;
+                document.getElementById('consRating').textContent = debateData.cons_rating;
+                document.getElementById('sideCons').textContent = debateData.side_cons;
+                if (debateData.cons_consecutive_wins > 0) {
+                    document.getElementById('consConsecutive').textContent = `連勝 ${debateData.cons_consecutive_wins} 回合`;
+                }
+
+                // 渲染回合
+                renderRounds(debateData.rounds);
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError('載入辯論資料失敗：' + error.message);
+            }
+        }
+
+        function renderRounds(rounds) {
+            const container = document.getElementById('roundsList');
+
+            if (!rounds || rounds.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-gray-500">尚無回合資料</div>';
+                return;
+            }
+
+            container.innerHTML = rounds.map(round => `
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold text-gray-800">第 ${round.round_number} 回合</h3>
+                        <span class="badge ${getStatusColor(round.status)}">${getStatusText(round.status)}</span>
+                    </div>
+
+                    ${renderRoundContent(round)}
+
+                    ${renderActionButtons(round)}
+                </div>
+            `).join('');
+        }
+
+        function renderRoundContent(round) {
+            let html = '';
+
+            // 正方主張
+            if (round.pros_statement) {
+                html += `
+                    <div class="mb-4 side-pros">
+                        <h4 class="font-semibold text-blue-600 mb-2">正方主張</h4>
+                        <p class="text-gray-700 whitespace-pre-wrap">${round.pros_statement}</p>
+                    </div>
+                `;
+            }
+
+            // 反方質詢
+            if (round.cons_questions) {
+                const questions = typeof round.cons_questions === 'string' ? JSON.parse(round.cons_questions) : round.cons_questions;
+                html += `
+                    <div class="mb-4 side-cons">
+                        <h4 class="font-semibold text-red-600 mb-2">反方質詢</h4>
+                        <ol class="list-decimal list-inside space-y-1">
+                            ${questions.map(q => `<li class="text-gray-700">${q}</li>`).join('')}
+                        </ol>
+                    </div>
+                `;
+            }
+
+            // 正方回覆
+            if (round.pros_reply) {
+                html += `
+                    <div class="mb-4 side-pros">
+                        <h4 class="font-semibold text-blue-600 mb-2">正方回覆</h4>
+                        <p class="text-gray-700 whitespace-pre-wrap">${round.pros_reply}</p>
+                    </div>
+                `;
+            }
+
+            // 反方主張
+            if (round.cons_statement) {
+                html += `
+                    <div class="mb-4 side-cons">
+                        <h4 class="font-semibold text-red-600 mb-2">反方主張</h4>
+                        <p class="text-gray-700 whitespace-pre-wrap">${round.cons_statement}</p>
+                    </div>
+                `;
+            }
+
+            // 正方質詢
+            if (round.pros_questions) {
+                const questions = typeof round.pros_questions === 'string' ? JSON.parse(round.pros_questions) : round.pros_questions;
+                html += `
+                    <div class="mb-4 side-pros">
+                        <h4 class="font-semibold text-blue-600 mb-2">正方質詢</h4>
+                        <ol class="list-decimal list-inside space-y-1">
+                            ${questions.map(q => `<li class="text-gray-700">${q}</li>`).join('')}
+                        </ol>
+                    </div>
+                `;
+            }
+
+            // 反方回覆
+            if (round.cons_reply) {
+                html += `
+                    <div class="mb-4 side-cons">
+                        <h4 class="font-semibold text-red-600 mb-2">反方回覆</h4>
+                        <p class="text-gray-700 whitespace-pre-wrap">${round.cons_reply}</p>
+                    </div>
+                `;
+            }
+
+            // 投票結果
+            if (round.status === 'ROUND_RESULT' && round.winner_side) {
+                const winnerText = round.winner_side === 'pros' ? '正方獲勝' : round.winner_side === 'cons' ? '反方獲勝' : '平手';
+                const winnerColor = round.winner_side === 'pros' ? 'text-blue-600' : round.winner_side === 'cons' ? 'text-red-600' : 'text-gray-600';
+                html += `
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-semibold ${winnerColor} mb-2 text-lg">${winnerText}</h4>
+                    </div>
+                `;
+            }
+
+            // 投票中
+            if (round.status === 'WAIT_VOTING') {
+                html += `
+                    <div class="mt-4 p-4 bg-purple-50 rounded-lg">
+                        <h4 class="font-semibold text-purple-600 mb-2">投票進行中</h4>
+                        ${round.voting_deadline ? `<p class="text-sm text-gray-600">截止時間：${formatDate(round.voting_deadline)}</p>` : ''}
+                        <div class="mt-3 flex space-x-2">
+                            <button onclick="vote(${round.round_id}, 'pros')" class="btn-primary">投給正方</button>
+                            <button onclick="vote(${round.round_id}, 'cons')" class="btn-danger">投給反方</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function renderActionButtons(round) {
+            if (debateData.status === 'FINISHED') {
+                return '';
+            }
+
+            const isPros = currentUser.user_id === debateData.pros_user_id;
+            const isCons = currentUser.user_id === debateData.cons_user_id;
+
+            if (!isPros && !isCons) {
+                return '';
+            }
+
+            let html = '<div class="mt-4 flex justify-end">';
+
+            if (round.status === 'WAIT_PROS_STATEMENT' && isPros) {
+                html += '<button onclick="showSubmitModal(' + round.round_id + ', \'pros_statement\')" class="btn-primary">提交正方主張</button>';
+            } else if (round.status === 'WAIT_CONS_QUESTIONS' && isCons) {
+                html += '<button onclick="showSubmitModal(' + round.round_id + ', \'cons_questions\')" class="btn-primary">提交反方質詢</button>';
+            } else if (round.status === 'WAIT_PROS_REPLY' && isPros) {
+                html += '<button onclick="showSubmitModal(' + round.round_id + ', \'pros_reply\')" class="btn-primary">提交正方回覆</button>';
+            } else if (round.status === 'WAIT_CONS_STATEMENT' && isCons) {
+                html += '<button onclick="showSubmitModal(' + round.round_id + ', \'cons_statement\')" class="btn-primary">提交反方主張</button>';
+            } else if (round.status === 'WAIT_PROS_QUESTIONS' && isPros) {
+                html += '<button onclick="showSubmitModal(' + round.round_id + ', \'pros_questions\')" class="btn-primary">提交正方質詢</button>';
+            } else if (round.status === 'WAIT_CONS_REPLY' && isCons) {
+                html += '<button onclick="showSubmitModal(' + round.round_id + ', \'cons_reply\')" class="btn-primary">提交反方回覆</button>';
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        async function vote(roundId, side) {
+            try {
+                showLoading();
+                await VoteAPI.submitVote(roundId, side);
+                hideLoading();
+                showSuccess('投票成功！');
+                setTimeout(() => location.reload(), 1500);
+            } catch (error) {
+                hideLoading();
+                showError('投票失敗：' + error.message);
+            }
+        }
+
+        function showSubmitModal(roundId, type) {
+            // 簡化版本：使用 prompt
+            if (type === 'cons_questions' || type === 'pros_questions') {
+                const count = prompt('請輸入質詢題目數量（1-5）：');
+                if (!count) return;
+
+                const questions = [];
+                for (let i = 0; i < parseInt(count); i++) {
+                    const q = prompt(`請輸入第 ${i + 1} 個質詢問題：`);
+                    if (q) questions.push(q);
+                }
+
+                if (questions.length > 0) {
+                    submitContent(roundId, type, questions);
+                }
+            } else {
+                const content = prompt('請輸入內容：');
+                if (content) {
+                    submitContent(roundId, type, content);
+                }
+            }
+        }
+
+        async function submitContent(roundId, type, content) {
+            try {
+                showLoading();
+
+                switch (type) {
+                    case 'pros_statement':
+                        await RoundAPI.submitProsStatement(roundId, content);
+                        break;
+                    case 'cons_questions':
+                        await RoundAPI.submitConsQuestions(roundId, content);
+                        break;
+                    case 'pros_reply':
+                        await RoundAPI.submitProsReply(roundId, content);
+                        break;
+                    case 'cons_statement':
+                        await RoundAPI.submitConsStatement(roundId, content);
+                        break;
+                    case 'pros_questions':
+                        await RoundAPI.submitProsQuestions(roundId, content);
+                        break;
+                    case 'cons_reply':
+                        await RoundAPI.submitConsReply(roundId, content);
+                        break;
+                }
+
+                hideLoading();
+                showSuccess('提交成功！');
+                setTimeout(() => location.reload(), 1500);
+            } catch (error) {
+                hideLoading();
+                showError('提交失敗：' + error.message);
+            }
+        }
+
+        initPage();
+        loadDebate();
+    </script>
+</body>
+</html>

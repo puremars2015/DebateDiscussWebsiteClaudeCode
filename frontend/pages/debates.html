@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>辯論列表 - 辯論平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <div id="navbar"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">辯論列表</h1>
+            <div class="flex space-x-2">
+                <button onclick="filterDebates('ONGOING')" class="btn-primary" id="btnOngoing">進行中</button>
+                <button onclick="filterDebates('FINISHED')" class="btn-secondary" id="btnFinished">已結束</button>
+            </div>
+        </div>
+
+        <div id="debatesList" class="space-y-4">
+            <!-- 動態加載 -->
+        </div>
+    </div>
+
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/utils.js"></script>
+    <script>
+        checkAuth();
+
+        let currentStatus = 'ONGOING';
+
+        async function filterDebates(status) {
+            currentStatus = status;
+
+            // 更新按鈕樣式
+            document.getElementById('btnOngoing').className = status === 'ONGOING' ? 'btn-primary' : 'btn-secondary';
+            document.getElementById('btnFinished').className = status === 'FINISHED' ? 'btn-primary' : 'btn-secondary';
+
+            await loadDebates();
+        }
+
+        async function loadDebates() {
+            try {
+                showLoading();
+                const data = await DebateAPI.getDebates(currentStatus);
+                const container = document.getElementById('debatesList');
+
+                if (data.debates.length === 0) {
+                    container.innerHTML = '<div class="text-center py-12 text-gray-500">沒有找到辯論</div>';
+                    hideLoading();
+                    return;
+                }
+
+                container.innerHTML = data.debates.map(debate => `
+                    <div class="card">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex-1">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">${debate.topic_title}</h3>
+                                <span class="badge ${getStatusColor(debate.status)}">${getStatusText(debate.status)}</span>
+                            </div>
+                            <div class="text-right text-sm text-gray-500">
+                                <div>回合 ${debate.round_count}</div>
+                                <div>${formatRelativeTime(debate.created_at)}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="side-pros">
+                                <div class="text-sm text-gray-500 mb-1">正方</div>
+                                <div class="font-semibold text-blue-600">${debate.pros_nickname}</div>
+                                ${debate.pros_consecutive_wins > 0 ? `<div class="text-xs text-green-600">連勝 ${debate.pros_consecutive_wins} 回合</div>` : ''}
+                            </div>
+                            <div class="side-cons">
+                                <div class="text-sm text-gray-500 mb-1">反方</div>
+                                <div class="font-semibold text-red-600">${debate.cons_nickname}</div>
+                                ${debate.cons_consecutive_wins > 0 ? `<div class="text-xs text-green-600">連勝 ${debate.cons_consecutive_wins} 回合</div>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end">
+                            <a href="debate.html?id=${debate.debate_id}" class="btn-primary">查看辯論</a>
+                        </div>
+                    </div>
+                `).join('');
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError('載入辯論列表失敗：' + error.message);
+            }
+        }
+
+        initPage();
+        loadDebates();
+    </script>
+</body>
+</html>

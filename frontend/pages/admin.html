@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理後台 - 辯論平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <div id="navbar"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">管理後台</h1>
+
+        <!-- 待審核話題 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">待審核話題</h2>
+            <div id="pendingTopics" class="space-y-4">
+                <!-- 動態加載 -->
+            </div>
+        </div>
+
+        <!-- 創建辯論 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">創建新辯論</h2>
+            <form onsubmit="createDebate(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">話題 ID</label>
+                    <input type="number" id="topicId" class="input" required>
+                    <p class="text-xs text-gray-500 mt-1">請輸入已批准的話題 ID</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">正方用戶 ID</label>
+                        <input type="number" id="prosUserId" class="input" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">反方用戶 ID</label>
+                        <input type="number" id="consUserId" class="input" required>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn-primary">創建辯論</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/utils.js"></script>
+    <script>
+        // 檢查是否為管理員
+        const user = getCurrentUser();
+        if (!user || !user.is_admin) {
+            showError('您沒有權限訪問此頁面');
+            setTimeout(() => window.location.href = 'index.html', 2000);
+        }
+
+        async function loadPendingTopics() {
+            try {
+                showLoading();
+                const data = await AdminAPI.getPendingTopics();
+                const container = document.getElementById('pendingTopics');
+
+                if (data.topics.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">目前沒有待審核的話題</p>';
+                    hideLoading();
+                    return;
+                }
+
+                container.innerHTML = data.topics.map(topic => `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">${topic.title}</h3>
+                        <p class="text-gray-600 mb-3">${topic.description}</p>
+                        <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                            <div><span class="text-gray-500">正方：</span>${topic.side_pros}</div>
+                            <div><span class="text-gray-500">反方：</span>${topic.side_cons}</div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-500">提交者：${topic.creator_nickname}</span>
+                            <div class="space-x-2">
+                                <button onclick="approveTopic(${topic.topic_id})" class="btn-success">批准</button>
+                                <button onclick="rejectTopic(${topic.topic_id})" class="btn-danger">拒絕</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError('載入待審核話題失敗：' + error.message);
+            }
+        }
+
+        async function approveTopic(topicId) {
+            if (!confirm('確定要批准這個話題嗎？')) return;
+
+            try {
+                showLoading();
+                await AdminAPI.approveTopic(topicId);
+                hideLoading();
+                showSuccess('話題已批准');
+                loadPendingTopics();
+            } catch (error) {
+                hideLoading();
+                showError('批准失敗：' + error.message);
+            }
+        }
+
+        async function rejectTopic(topicId) {
+            if (!confirm('確定要拒絕這個話題嗎？')) return;
+
+            try {
+                showLoading();
+                await AdminAPI.rejectTopic(topicId);
+                hideLoading();
+                showSuccess('話題已拒絕');
+                loadPendingTopics();
+            } catch (error) {
+                hideLoading();
+                showError('拒絕失敗：' + error.message);
+            }
+        }
+
+        async function createDebate(event) {
+            event.preventDefault();
+
+            const debateData = {
+                topic_id: parseInt(document.getElementById('topicId').value),
+                pros_user_id: parseInt(document.getElementById('prosUserId').value),
+                cons_user_id: parseInt(document.getElementById('consUserId').value)
+            };
+
+            try {
+                showLoading();
+                const result = await DebateAPI.createDebate(debateData);
+                hideLoading();
+                showSuccess('辯論創建成功！');
+                event.target.reset();
+
+                // 跳轉到辯論頁面
+                setTimeout(() => {
+                    window.location.href = `debate.html?id=${result.debate_id}`;
+                }, 1500);
+            } catch (error) {
+                hideLoading();
+                showError('創建辯論失敗：' + error.message);
+            }
+        }
+
+        initPage();
+        loadPendingTopics();
+    </script>
+</body>
+</html>

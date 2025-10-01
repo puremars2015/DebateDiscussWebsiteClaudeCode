@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>排行榜 - 辯論平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <div id="navbar"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">排行榜</h1>
+
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">排名</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">玩家</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">勝場</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">敗場</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平手</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">勝率</th>
+                    </tr>
+                </thead>
+                <tbody id="rankingTable" class="bg-white divide-y divide-gray-200">
+                    <!-- 動態加載 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/utils.js"></script>
+    <script>
+        checkAuth();
+
+        async function loadRanking() {
+            try {
+                showLoading();
+                const data = await RankingAPI.getRanking();
+                const tbody = document.getElementById('rankingTable');
+
+                if (data.ranking.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-500">目前沒有排名資料</td></tr>';
+                    hideLoading();
+                    return;
+                }
+
+                tbody.innerHTML = data.ranking.map((user, index) => {
+                    const isCurrentUser = getCurrentUser() && user.user_id === getCurrentUser().user_id;
+                    const rowClass = isCurrentUser ? 'bg-blue-50' : '';
+                    const rankBadge = index < 3 ? getRankBadge(index + 1) : index + 1;
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">${rankBadge}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <img src="${user.avatar || 'https://via.placeholder.com/40'}" alt="${user.nickname}" class="w-10 h-10 rounded-full mr-3">
+                                    <div class="text-sm font-medium text-gray-900">${user.nickname}</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-bold text-blue-600">${user.rating}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-green-600">${user.wins}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-red-600">${user.losses}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-600">${user.draws}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${user.win_rate}%</div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError('載入排行榜失敗：' + error.message);
+            }
+        }
+
+        function getRankBadge(rank) {
+            const badges = {
+                1: '<span class="text-2xl">🥇</span>',
+                2: '<span class="text-2xl">🥈</span>',
+                3: '<span class="text-2xl">🥉</span>'
+            };
+            return badges[rank] || rank;
+        }
+
+        initPage();
+        loadRanking();
+    </script>
+</body>
+</html>

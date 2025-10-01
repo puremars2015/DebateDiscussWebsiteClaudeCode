@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首頁 - 辯論平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <div id="navbar"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- 用戶資訊卡片 -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex items-center space-x-4">
+                <img id="userAvatar" src="" alt="頭像" class="w-20 h-20 rounded-full">
+                <div class="flex-1">
+                    <h2 id="userName" class="text-2xl font-bold text-gray-800"></h2>
+                    <div class="flex items-center space-x-4 mt-2">
+                        <span class="text-lg font-semibold text-blue-600">Rating: <span id="userRating"></span></span>
+                        <span class="text-gray-600">勝場: <span id="userWins"></span></span>
+                        <span class="text-gray-600">敗場: <span id="userLosses"></span></span>
+                        <span class="text-gray-600">平手: <span id="userDraws"></span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快速導航 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <a href="debates.html" class="card hover:scale-105 transition-transform">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">進行中的辯論</h3>
+                <p class="text-gray-600">查看並參與正在進行的辯論</p>
+            </a>
+            <a href="topics.html" class="card hover:scale-105 transition-transform">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">話題廣場</h3>
+                <p class="text-gray-600">瀏覽話題並提交新議題</p>
+            </a>
+            <a href="ranking.html" class="card hover:scale-105 transition-transform">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">排行榜</h3>
+                <p class="text-gray-600">查看玩家實力排名</p>
+            </a>
+        </div>
+
+        <!-- 最新辯論 -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">最新辯論</h3>
+            <div id="latestDebates" class="space-y-4">
+                <!-- 動態加載 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/utils.js"></script>
+    <script>
+        if (!checkAuth()) {
+            // 如果未登入會自動重定向到登入頁
+        }
+
+        async function loadUserData() {
+            try {
+                const data = await UserAPI.getCurrentUser();
+                document.getElementById('userAvatar').src = data.avatar || 'https://via.placeholder.com/80';
+                document.getElementById('userName').textContent = data.nickname;
+                document.getElementById('userRating').textContent = data.rating;
+                document.getElementById('userWins').textContent = data.wins;
+                document.getElementById('userLosses').textContent = data.losses;
+                document.getElementById('userDraws').textContent = data.draws;
+                setCurrentUser(data);
+            } catch (error) {
+                showError('載入用戶資料失敗');
+                console.error(error);
+            }
+        }
+
+        async function loadLatestDebates() {
+            try {
+                const data = await DebateAPI.getDebates('ONGOING');
+                const container = document.getElementById('latestDebates');
+
+                if (data.debates.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">目前沒有進行中的辯論</p>';
+                    return;
+                }
+
+                container.innerHTML = data.debates.slice(0, 5).map(debate => `
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="text-lg font-semibold text-gray-800">${debate.topic_title}</h4>
+                            <span class="badge ${getStatusColor(debate.status)}">${getStatusText(debate.status)}</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <div class="flex items-center space-x-4">
+                                <span class="text-blue-600">${debate.pros_nickname}</span>
+                                <span>vs</span>
+                                <span class="text-red-600">${debate.cons_nickname}</span>
+                            </div>
+                            <div class="text-gray-500">回合 ${debate.round_count}</div>
+                        </div>
+                        <div class="mt-2">
+                            <a href="debate.html?id=${debate.debate_id}" class="text-blue-500 hover:text-blue-600 text-sm">查看詳情 →</a>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                showError('載入辯論列表失敗');
+                console.error(error);
+            }
+        }
+
+        initPage();
+        loadUserData();
+        loadLatestDebates();
+    </script>
+</body>
+</html>

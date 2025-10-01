@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>話題廣場 - 辯論平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <div id="navbar"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">話題廣場</h1>
+            <button onclick="showApplyModal()" class="btn-primary">申請新話題</button>
+        </div>
+
+        <div id="topicsList" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 動態加載 -->
+        </div>
+    </div>
+
+    <!-- 申請話題的模態框 -->
+    <div id="applyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-4">申請新話題</h2>
+            <form onsubmit="submitTopic(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">話題標題</label>
+                        <input type="text" id="topicTitle" class="input" required maxlength="200">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">話題描述</label>
+                        <textarea id="topicDescription" class="textarea" rows="4" required></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">正方立場名稱</label>
+                            <input type="text" id="sidePros" class="input" required placeholder="例如：支持">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">反方立場名稱</label>
+                            <input type="text" id="sideCons" class="input" required placeholder="例如：反對">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">字數限制</label>
+                            <input type="number" id="wordLimit" class="input" value="500" min="100" max="2000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">回覆時限（小時）</label>
+                            <input type="number" id="timeLimit" class="input" value="24" min="1" max="168">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 mt-6">
+                    <button type="button" onclick="hideApplyModal()" class="btn-secondary">取消</button>
+                    <button type="submit" class="btn-primary">提交申請</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../static/js/api.js"></script>
+    <script src="../static/js/utils.js"></script>
+    <script>
+        checkAuth();
+
+        function showApplyModal() {
+            document.getElementById('applyModal').classList.remove('hidden');
+        }
+
+        function hideApplyModal() {
+            document.getElementById('applyModal').classList.add('hidden');
+        }
+
+        async function submitTopic(event) {
+            event.preventDefault();
+
+            const topicData = {
+                title: document.getElementById('topicTitle').value,
+                description: document.getElementById('topicDescription').value,
+                side_pros: document.getElementById('sidePros').value,
+                side_cons: document.getElementById('sideCons').value,
+                rules: {
+                    word_limit: parseInt(document.getElementById('wordLimit').value),
+                    time_limit_hours: parseInt(document.getElementById('timeLimit').value)
+                }
+            };
+
+            try {
+                showLoading();
+                await TopicAPI.applyTopic(topicData);
+                hideLoading();
+                showSuccess('話題申請已提交，等待審核');
+                hideApplyModal();
+                // 清空表單
+                event.target.reset();
+            } catch (error) {
+                hideLoading();
+                showError('提交失敗：' + error.message);
+            }
+        }
+
+        async function loadTopics() {
+            try {
+                showLoading();
+                const data = await TopicAPI.getTopics('approved');
+                const container = document.getElementById('topicsList');
+
+                if (data.topics.length === 0) {
+                    container.innerHTML = '<div class="col-span-2 text-center py-12 text-gray-500">目前沒有已批准的話題</div>';
+                    hideLoading();
+                    return;
+                }
+
+                container.innerHTML = data.topics.map(topic => {
+                    let rules = {};
+                    try {
+                        rules = typeof topic.rules === 'string' ? JSON.parse(topic.rules) : topic.rules;
+                    } catch (e) {
+                        console.error('Failed to parse rules:', e);
+                    }
+
+                    return `
+                        <div class="card">
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">${topic.title}</h3>
+                            <p class="text-gray-600 mb-4 line-clamp-3">${topic.description}</p>
+
+                            <div class="grid grid-cols-2 gap-2 mb-4 text-sm">
+                                <div class="side-pros">
+                                    <span class="text-gray-500">正方：</span>
+                                    <span class="font-semibold">${topic.side_pros}</span>
+                                </div>
+                                <div class="side-cons">
+                                    <span class="text-gray-500">反方：</span>
+                                    <span class="font-semibold">${topic.side_cons}</span>
+                                </div>
+                            </div>
+
+                            ${rules.word_limit || rules.time_limit_hours ? `
+                                <div class="text-xs text-gray-500 mb-2">
+                                    ${rules.word_limit ? `字數限制：${rules.word_limit} 字 ` : ''}
+                                    ${rules.time_limit_hours ? `時限：${rules.time_limit_hours} 小時` : ''}
+                                </div>
+                            ` : ''}
+
+                            <div class="flex justify-between items-center text-sm text-gray-500">
+                                <span>提交者：${topic.creator_nickname}</span>
+                                <span>${formatRelativeTime(topic.created_at)}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showError('載入話題列表失敗：' + error.message);
+            }
+        }
+
+        initPage();
+        loadTopics();
+    </script>
+</body>
+</html>
