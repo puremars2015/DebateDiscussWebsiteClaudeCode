@@ -58,17 +58,29 @@
         // 檢查 URL 是否有 token（從 Line 回調）
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+        const error = urlParams.get('error');
+
+        if (error) {
+            showError('登入失敗：' + error);
+        }
 
         if (token) {
             setToken(token);
-            showSuccess('登入成功！');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
+            // 獲取用戶資料並儲存
+            UserAPI.getCurrentUser().then(userData => {
+                setCurrentUser(userData);
+                showSuccess('登入成功！');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+            }).catch(err => {
+                showError('獲取用戶資料失敗');
+                clearToken();
+            });
         }
 
         // 如果已登入，重定向到首頁
-        if (getToken()) {
+        if (getToken() && !token) {
             window.location.href = 'index.html';
         }
 
