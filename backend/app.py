@@ -3,7 +3,12 @@ from flask_cors import CORS
 from config import Config
 
 app = Flask(__name__)
-CORS(app)
+
+# 禁用 URL 尾部斜線的嚴格匹配，避免不必要的重定向
+app.url_map.strict_slashes = False
+
+# 簡單的 CORS 配置 - 開發環境允許所有來源
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # 導入路由
 from app.routes import auth, users, topics, debates, rounds, votes, ranking, admin

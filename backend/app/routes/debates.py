@@ -5,7 +5,7 @@ from app.utils.auth import token_required, admin_required
 bp = Blueprint('debates', __name__)
 
 
-@bp.route('/', methods=['GET', 'OPTIONS'])
+@bp.route('/', methods=['GET', 'OPTIONS'], strict_slashes=False)
 def get_debates():
     """獲取辯論列表"""
     # 處理 OPTIONS 請求（CORS preflight）

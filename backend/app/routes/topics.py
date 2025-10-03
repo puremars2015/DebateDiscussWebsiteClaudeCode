@@ -6,7 +6,7 @@ from app.utils.auth import token_required
 bp = Blueprint('topics', __name__)
 
 
-@bp.route('/', methods=['GET', 'OPTIONS'])
+@bp.route('/', methods=['GET', 'OPTIONS'], strict_slashes=False)
 def get_topics():
     """獲取話題列表"""
     # 處理 OPTIONS 請求（CORS preflight）

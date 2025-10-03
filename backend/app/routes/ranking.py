@@ -1,12 +1,14 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from app.utils.database import db
 
 bp = Blueprint('ranking', __name__)
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET', 'OPTIONS'], strict_slashes=False)
 def get_ranking():
     """獲取排行榜"""
+    if request.method == 'OPTIONS':
+        return '', 204
     users = db.execute_query(
         """
         SELECT user_id, nickname, avatar, rating, wins, losses, draws,
