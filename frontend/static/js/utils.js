@@ -4,7 +4,7 @@
 function checkAuth() {
     const token = getToken();
     if (!token) {
-        window.location.href = '/frontend/pages/login.html';
+        window.location.href = '/pages/login.html';
         return false;
     }
     return true;
@@ -158,7 +158,7 @@ function renderNavbar() {
                                 <button onclick="AuthAPI.logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">登出</button>
                             </div>
                         ` : `
-                            <a href="/frontend/pages/login.html" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">登入</a>
+                            <a href="/pages/login.html" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">登入</a>
                         `}
                     </div>
                 </div>

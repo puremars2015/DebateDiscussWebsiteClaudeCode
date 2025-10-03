@@ -61,10 +61,31 @@
 
         if (token) {
             setToken(token);
-            showSuccess('登入成功！');
+            
+            // 如果 URL 包含使用者資料，直接儲存
+            const userId = urlParams.get('user_id');
+            const nickname = urlParams.get('nickname');
+            const avatar = urlParams.get('avatar');
+            
+            if (userId && nickname) {
+                const user = {
+                    user_id: parseInt(userId),
+                    nickname: decodeURIComponent(nickname),
+                    avatar: decodeURIComponent(avatar || ''),
+                    rating: 1200, // 預設 rating
+                    is_admin: false
+                };
+                setCurrentUser(user);
+                showSuccess(`登入成功！歡迎 ${user.nickname}！`);
+            } else {
+                showSuccess('登入成功！');
+            }
+            
+            // 清除 URL 參數並跳轉
             setTimeout(() => {
+                window.history.replaceState({}, document.title, window.location.pathname);
                 window.location.href = 'index.html';
-            }, 1000);
+            }, 1500);
         }
 
         // 如果已登入，重定向到首頁

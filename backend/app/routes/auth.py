@@ -83,14 +83,16 @@ def callback():
         # 生成 JWT token
         jwt_token = generate_jwt_token(user_id)
 
-        return jsonify({
+        # 重定向到前端登入頁面，帶上 token 和使用者資料參數
+        from urllib.parse import urlencode
+        params = {
             'token': jwt_token,
-            'user': {
-                'user_id': user_id,
-                'nickname': profile.get('displayName'),
-                'avatar': profile.get('pictureUrl')
-            }
-        })
+            'user_id': user_id,
+            'nickname': profile.get('displayName', ''),
+            'avatar': profile.get('pictureUrl', '')
+        }
+        frontend_url = f"{Config.FRONTEND_URL}/pages/login.html?{urlencode(params)}"
+        return redirect(frontend_url)
 
     except requests.RequestException as e:
         return jsonify({'error': 'Failed to authenticate with Line'}), 500
