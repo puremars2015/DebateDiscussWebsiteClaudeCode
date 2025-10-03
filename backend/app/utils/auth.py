@@ -32,6 +32,10 @@ def token_required(f):
     """JWT token 驗證裝飾器"""
     @wraps(f)
     def decorated(*args, **kwargs):
+        # OPTIONS 請求不需要認證（CORS preflight）
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+        
         token = None
 
         # 從 Authorization header 獲取 token
@@ -73,6 +77,10 @@ def admin_required(f):
     @wraps(f)
     @token_required
     def decorated(*args, **kwargs):
+        # OPTIONS 請求不需要權限檢查（CORS preflight）
+        if request.method == 'OPTIONS':
+            return f(*args, **kwargs)
+        
         if not request.current_user.get('is_admin'):
             return jsonify({'error': 'Admin privileges required'}), 403
         return f(*args, **kwargs)

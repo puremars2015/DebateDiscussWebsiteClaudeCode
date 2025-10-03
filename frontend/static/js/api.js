@@ -38,29 +38,44 @@ async function apiRequest(endpoint, options = {}) {
     const token = getToken();
 
     const headers = {
-        'Content-Type': 'application/json',
         ...options.headers
     };
 
+    // 只在有 body 時添加 Content-Type
+    if (options.body) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    // 只在有 token 時添加 Authorization
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const fetchOptions = {
+        method: options.method || 'GET',
+        headers: headers
+    };
+
+    // 只在有 body 的情況下添加
+    if (options.body) {
+        fetchOptions.body = options.body;
+    }
+
     try {
-        const response = await fetch(url, {
-            ...options,
-            headers
-        });
+        console.log(`[API] ${fetchOptions.method} ${url}`, fetchOptions.headers);
+        const response = await fetch(url, fetchOptions);
 
         const data = await response.json();
 
         if (!response.ok) {
+            console.error(`[API] Error ${response.status}:`, data);
             throw new Error(data.error || 'Request failed');
         }
 
+        console.log(`[API] Success:`, data);
         return data;
     } catch (error) {
-        console.error('API Request Error:', error);
+        console.error('[API] Request Error:', error);
         throw error;
     }
 }
@@ -80,7 +95,7 @@ const AuthAPI = {
     logout() {
         clearToken();
         clearCurrentUser();
-        window.location.href = '/pages/login.html';
+        window.location.href = '/frontend/pages/login.html';
     }
 };
 

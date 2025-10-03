@@ -6,9 +6,13 @@ from app.utils.auth import token_required
 bp = Blueprint('topics', __name__)
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET', 'OPTIONS'])
 def get_topics():
     """獲取話題列表"""
+    # 處理 OPTIONS 請求（CORS preflight）
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     status = request.args.get('status', 'approved')
 
     query = """
@@ -23,9 +27,11 @@ def get_topics():
     return jsonify({'topics': topics})
 
 
-@bp.route('/<int:topic_id>', methods=['GET'])
+@bp.route('/<int:topic_id>', methods=['GET', 'OPTIONS'])
 def get_topic(topic_id):
     """獲取話題詳情"""
+    if request.method == 'OPTIONS':
+        return '', 204
     topic = db.execute_query(
         """
         SELECT t.*, u.nickname as creator_nickname

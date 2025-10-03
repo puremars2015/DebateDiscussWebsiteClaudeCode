@@ -5,9 +5,13 @@ from app.utils.auth import token_required, admin_required
 bp = Blueprint('debates', __name__)
 
 
-@bp.route('/', methods=['GET'])
+@bp.route('/', methods=['GET', 'OPTIONS'])
 def get_debates():
     """獲取辯論列表"""
+    # 處理 OPTIONS 請求（CORS preflight）
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     status = request.args.get('status', 'ONGOING')
 
     debates = db.execute_query(

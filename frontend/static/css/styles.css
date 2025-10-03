@@ -1,37 +1,5 @@
 /* 自定義樣式 */
 
-/* 全局設定 - 禁止不必要的文字選取 */
-* {
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
-    user-select: none; /* Standard */
-}
-
-/* 允許特定元素的文字選取 */
-input,
-textarea,
-[contenteditable="true"],
-.selectable {
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
-}
-
-/* 允許辯論內容和回合內容的文字選取（方便複製）*/
-.debate-content,
-.round-content,
-.statement-text,
-.reply-text,
-pre,
-code {
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
-}
-
 /* 動畫 */
 @keyframes fadeIn {
     from {
@@ -56,30 +24,18 @@ code {
 /* 按鈕樣式 */
 .btn-primary {
     @apply bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors;
-    cursor: pointer;
 }
 
 .btn-secondary {
     @apply bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition-colors;
-    cursor: pointer;
 }
 
 .btn-success {
     @apply bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors;
-    cursor: pointer;
 }
 
 .btn-danger {
     @apply bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors;
-    cursor: pointer;
-}
-
-/* 為所有可點擊元素設定正確的游標 */
-button,
-a,
-[onclick],
-[role="button"] {
-    cursor: pointer;
 }
 
 /* 狀態徽章 */

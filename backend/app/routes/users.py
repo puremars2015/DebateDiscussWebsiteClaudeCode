@@ -5,9 +5,14 @@ from app.utils.auth import token_required
 bp = Blueprint('users', __name__)
 
 
-@bp.route('/me', methods=['GET'])
+@bp.route('/me', methods=['GET', 'OPTIONS'])
 @token_required
 def get_current_user():
+
+    # 處理 OPTIONS 請求（CORS preflight）
+    if request.method == 'OPTIONS':
+        return '', 204
+
     """獲取當前用戶資料"""
     user = request.current_user
     return jsonify({
