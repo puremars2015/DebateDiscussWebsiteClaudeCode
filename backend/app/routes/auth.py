@@ -84,13 +84,13 @@ def callback():
         jwt_token = generate_jwt_token(user_id)
 
         # 重定向到前端登入頁面，並帶上 token
-        return redirect(f'/pages/login.html?token={jwt_token}')
+        return redirect(f'http://localhost:8080/pages/login.html?token={jwt_token}')
 
     except requests.RequestException as e:
         # 錯誤時也重定向到登入頁面，並帶上錯誤訊息
-        return redirect(f'/pages/login.html?error=line_auth_failed')
+        return redirect('http://localhost:8080/pages/login.html?error=line_auth_failed')
     except Exception as e:
-        return redirect(f'/pages/login.html?error={str(e)}')
+        return redirect(f'http://localhost:8080/pages/login.html?error={str(e)}')
 
 
 @bp.route('/verify', methods=['GET'])
