@@ -1,6 +1,7 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from config import Config
+import os
 
 app = Flask(__name__)
 
@@ -24,13 +25,25 @@ app.register_blueprint(ranking.bp, url_prefix='/api/ranking')
 app.register_blueprint(admin.bp, url_prefix='/api/admin')
 
 
+# 靜態文件路由 - 提供前端文件
+@app.route('/pages/<path:filename>')
+def serve_pages(filename):
+    frontend_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'pages')
+    return send_from_directory(frontend_dir, filename)
+
+
+@app.route('/static/<path:subpath>')
+def serve_static(subpath):
+    # 處理 /static/css/*, /static/js/* 等路徑
+    frontend_static_dir = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'static')
+    return send_from_directory(frontend_static_dir, subpath)
+
+
 @app.route('/')
 def index():
-    return jsonify({
-        'message': 'Debate Platform API',
-        'version': '1.0.0',
-        'status': 'running'
-    })
+    # 重定向到登入頁面
+    from flask import redirect
+    return redirect('/pages/login.html')
 
 
 @app.route('/health')
