@@ -142,12 +142,12 @@ function renderNavbar() {
             <div class="container mx-auto px-4">
                 <div class="flex justify-between items-center py-4">
                     <div class="flex items-center space-x-8">
-                        <a href="/frontend/pages/index.html" class="text-2xl font-bold text-blue-600">辯論平台</a>
+                        <a href="/pages/index.html" class="text-2xl font-bold text-blue-600">辯論平台</a>
                         ${isLoggedIn ? `
-                            <a href="/frontend/pages/debates.html" class="text-gray-700 hover:text-blue-600">辯論列表</a>
-                            <a href="/frontend/pages/topics.html" class="text-gray-700 hover:text-blue-600">話題</a>
-                            <a href="/frontend/pages/ranking.html" class="text-gray-700 hover:text-blue-600">排行榜</a>
-                            ${user.is_admin ? '<a href="/frontend/pages/admin.html" class="text-gray-700 hover:text-blue-600">管理後台</a>' : ''}
+                            <a href="/pages/debates.html" class="text-gray-700 hover:text-blue-600">辯論列表</a>
+                            <a href="/pages/topics.html" class="text-gray-700 hover:text-blue-600">話題</a>
+                            <a href="/pages/ranking.html" class="text-gray-700 hover:text-blue-600">排行榜</a>
+                            ${user.is_admin ? '<a href="/pages/admin.html" class="text-gray-700 hover:text-blue-600">管理後台</a>' : ''}
                         ` : ''}
                     </div>
                     <div>
