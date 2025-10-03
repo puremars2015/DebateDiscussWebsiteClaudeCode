@@ -38,6 +38,7 @@ class Config:
     # Flask 配置
     DEBUG = os.getenv('FLASK_DEBUG', 'True') == 'True'
     PORT = int(os.getenv('PORT', 5000))
+    FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:8080')
 
     # Elo 評分配置
     ELO_K_FACTOR = 32

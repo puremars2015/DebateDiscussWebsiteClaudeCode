@@ -83,19 +83,14 @@ def callback():
         # 生成 JWT token
         jwt_token = generate_jwt_token(user_id)
 
-        return jsonify({
-            'token': jwt_token,
-            'user': {
-                'user_id': user_id,
-                'nickname': profile.get('displayName'),
-                'avatar': profile.get('pictureUrl')
-            }
-        })
+        # 重定向到前端登入頁面，並帶上 token
+        return redirect(f'/pages/login.html?token={jwt_token}')
 
     except requests.RequestException as e:
-        return jsonify({'error': 'Failed to authenticate with Line'}), 500
+        # 錯誤時也重定向到登入頁面，並帶上錯誤訊息
+        return redirect(f'/pages/login.html?error=line_auth_failed')
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return redirect(f'/pages/login.html?error={str(e)}')
 
 
 @bp.route('/verify', methods=['GET'])
