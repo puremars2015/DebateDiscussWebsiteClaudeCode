@@ -126,32 +126,60 @@
                     }
 
                     return `
-                        <div class="card">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">${topic.title}</h3>
-                            <p class="text-gray-600 mb-4 line-clamp-3">${topic.description}</p>
-
-                            <div class="grid grid-cols-2 gap-2 mb-4 text-sm">
-                                <div class="side-pros">
-                                    <span class="text-gray-500">正方：</span>
-                                    <span class="font-semibold">${topic.side_pros}</span>
+                        <div class="topic-card">
+                            <div class="topic-header">
+                                <h3 class="topic-title">${topic.title}</h3>
+                                <div class="topic-meta">
+                                    <span class="topic-author">
+                                        <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                        </svg>
+                                        ${topic.creator_nickname}
+                                    </span>
+                                    <span class="topic-time">
+                                        <svg class="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        ${formatRelativeTime(topic.created_at)}
+                                    </span>
                                 </div>
-                                <div class="side-cons">
-                                    <span class="text-gray-500">反方：</span>
-                                    <span class="font-semibold">${topic.side_cons}</span>
+                            </div>
+                            
+                            <p class="topic-description">${topic.description}</p>
+
+                            <div class="topic-sides">
+                                <div class="side-box side-pros-box">
+                                    <div class="side-label">正方立場</div>
+                                    <div class="side-value">${topic.side_pros}</div>
+                                </div>
+                                <div class="vs-divider">VS</div>
+                                <div class="side-box side-cons-box">
+                                    <div class="side-label">反方立場</div>
+                                    <div class="side-value">${topic.side_cons}</div>
                                 </div>
                             </div>
 
                             ${rules.word_limit || rules.time_limit_hours ? `
-                                <div class="text-xs text-gray-500 mb-2">
-                                    ${rules.word_limit ? `字數限制：${rules.word_limit} 字 ` : ''}
-                                    ${rules.time_limit_hours ? `時限：${rules.time_limit_hours} 小時` : ''}
+                                <div class="topic-rules">
+                                    ${rules.word_limit ? `
+                                        <span class="rule-badge">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                                            </svg>
+                                            字數 ${rules.word_limit}
+                                        </span>
+                                    ` : ''}
+                                    ${rules.time_limit_hours ? `
+                                        <span class="rule-badge">
+                                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                            </svg>
+                                            時限 ${rules.time_limit_hours}h
+                                        </span>
+                                    ` : ''}
                                 </div>
                             ` : ''}
-
-                            <div class="flex justify-between items-center text-sm text-gray-500">
-                                <span>提交者：${topic.creator_nickname}</span>
-                                <span>${formatRelativeTime(topic.created_at)}</span>
-                            </div>
                         </div>
                     `;
                 }).join('');
