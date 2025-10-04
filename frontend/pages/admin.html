@@ -24,11 +24,20 @@
         <!-- 創建辯論 -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">創建新辯論</h2>
+            
+            <!-- 已批准話題列表 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">可用話題</h3>
+                <div id="approvedTopics" class="space-y-2 max-h-64 overflow-y-auto">
+                    <!-- 動態加載 -->
+                </div>
+            </div>
+
             <form onsubmit="createDebate(event)" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">話題 ID</label>
                     <input type="number" id="topicId" class="input" required>
-                    <p class="text-xs text-gray-500 mt-1">請輸入已批准的話題 ID</p>
+                    <p class="text-xs text-gray-500 mt-1">從上方列表選擇或輸入已批准的話題 ID</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -65,33 +74,66 @@
 
                 if (data.topics.length === 0) {
                     container.innerHTML = '<p class="text-gray-500 text-center py-4">目前沒有待審核的話題</p>';
-                    hideLoading();
-                    return;
-                }
-
-                container.innerHTML = data.topics.map(topic => `
-                    <div class="border border-gray-200 rounded-lg p-4">
-                        <h3 class="text-lg font-bold text-gray-800 mb-2">${topic.title}</h3>
-                        <p class="text-gray-600 mb-3">${topic.description}</p>
-                        <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
-                            <div><span class="text-gray-500">正方：</span>${topic.side_pros}</div>
-                            <div><span class="text-gray-500">反方：</span>${topic.side_cons}</div>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-sm text-gray-500">提交者：${topic.creator_nickname}</span>
-                            <div class="space-x-2">
-                                <button onclick="approveTopic(${topic.topic_id})" class="btn-success">批准</button>
-                                <button onclick="rejectTopic(${topic.topic_id})" class="btn-danger">拒絕</button>
+                } else {
+                    container.innerHTML = data.topics.map(topic => `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="text-lg font-bold text-gray-800 mb-2">${topic.title}</h3>
+                            <p class="text-gray-600 mb-3">${topic.description}</p>
+                            <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                                <div><span class="text-gray-500">正方：</span>${topic.side_pros}</div>
+                                <div><span class="text-gray-500">反方：</span>${topic.side_cons}</div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-500">提交者：${topic.creator_nickname}</span>
+                                <div class="space-x-2">
+                                    <button onclick="approveTopic(${topic.topic_id})" class="btn-success">批准</button>
+                                    <button onclick="rejectTopic(${topic.topic_id})" class="btn-danger">拒絕</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `).join('');
+                    `).join('');
+                }
 
                 hideLoading();
             } catch (error) {
                 hideLoading();
                 showError('載入待審核話題失敗：' + error.message);
             }
+        }
+
+        async function loadApprovedTopics() {
+            try {
+                const data = await TopicAPI.getTopics('approved');
+                const container = document.getElementById('approvedTopics');
+
+                if (data.topics.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">目前沒有已批准的話題</p>';
+                    return;
+                }
+
+                container.innerHTML = data.topics.map(topic => `
+                    <div class="border border-gray-200 rounded-lg p-3 hover:bg-blue-50 cursor-pointer transition-colors" 
+                         onclick="selectTopic(${topic.topic_id})">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">${topic.title}</h4>
+                                <p class="text-xs text-gray-500 mt-1">ID: ${topic.topic_id} | ${topic.side_pros} vs ${topic.side_cons}</p>
+                            </div>
+                            <button onclick="selectTopic(${topic.topic_id}); event.stopPropagation();" 
+                                    class="text-xs bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                                選擇
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('載入已批准話題失敗：', error);
+            }
+        }
+
+        function selectTopic(topicId) {
+            document.getElementById('topicId').value = topicId;
+            showSuccess(`已選擇話題 ID: ${topicId}`);
         }
 
         async function approveTopic(topicId) {
@@ -127,31 +169,54 @@
         async function createDebate(event) {
             event.preventDefault();
 
+            const topicId = parseInt(document.getElementById('topicId').value);
+            const prosUserId = parseInt(document.getElementById('prosUserId').value);
+            const consUserId = parseInt(document.getElementById('consUserId').value);
+
+            // 驗證輸入
+            if (!topicId || !prosUserId || !consUserId) {
+                showError('請填寫所有欄位');
+                return;
+            }
+
+            if (prosUserId === consUserId) {
+                showError('正方和反方用戶不能相同');
+                return;
+            }
+
             const debateData = {
-                topic_id: parseInt(document.getElementById('topicId').value),
-                pros_user_id: parseInt(document.getElementById('prosUserId').value),
-                cons_user_id: parseInt(document.getElementById('consUserId').value)
+                topic_id: topicId,
+                pros_user_id: prosUserId,
+                cons_user_id: consUserId
             };
+
+            console.log('創建辯論數據:', debateData);
 
             try {
                 showLoading();
                 const result = await DebateAPI.createDebate(debateData);
                 hideLoading();
+                
+                console.log('創建成功:', result);
                 showSuccess('辯論創建成功！');
                 event.target.reset();
 
                 // 跳轉到辯論頁面
-                setTimeout(() => {
-                    window.location.href = `debate.html?id=${result.debate_id}`;
-                }, 1500);
+                if (result.debate_id) {
+                    setTimeout(() => {
+                        window.location.href = `debate.html?id=${result.debate_id}`;
+                    }, 1500);
+                }
             } catch (error) {
                 hideLoading();
+                console.error('創建辯論失敗:', error);
                 showError('創建辯論失敗：' + error.message);
             }
         }
 
         initPage();
         loadPendingTopics();
+        loadApprovedTopics();
     </script>
 </body>
 </html>

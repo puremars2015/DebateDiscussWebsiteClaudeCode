@@ -74,54 +74,81 @@ def get_debate(debate_id):
 @admin_required
 def create_debate():
     """創建新辯論（管理員）"""
-    data = request.get_json()
+    try:
+        data = request.get_json()
 
-    topic_id = data.get('topic_id')
-    pros_user_id = data.get('pros_user_id')
-    cons_user_id = data.get('cons_user_id')
+        topic_id = data.get('topic_id')
+        pros_user_id = data.get('pros_user_id')
+        cons_user_id = data.get('cons_user_id')
 
-    if not all([topic_id, pros_user_id, cons_user_id]):
-        return jsonify({'error': 'Missing required fields'}), 400
+        # 驗證必填欄位
+        if not all([topic_id, pros_user_id, cons_user_id]):
+            return jsonify({'error': 'Missing required fields: topic_id, pros_user_id, cons_user_id'}), 400
 
-    if pros_user_id == cons_user_id:
-        return jsonify({'error': 'Pros and cons users must be different'}), 400
+        # 驗證用戶不能相同
+        if pros_user_id == cons_user_id:
+            return jsonify({'error': 'Pros and cons users must be different'}), 400
 
-    # 檢查話題是否已批准
-    topic = db.execute_query(
-        "SELECT * FROM DebateTopics WHERE topic_id = ? AND status = 'approved'",
-        (topic_id,),
-        fetch_one=True
-    )
+        # 檢查話題是否已批准
+        topic = db.execute_query(
+            "SELECT * FROM DebateTopics WHERE topic_id = ? AND status = 'approved'",
+            (topic_id,),
+            fetch_one=True
+        )
 
-    if not topic:
-        return jsonify({'error': 'Topic not found or not approved'}), 404
+        if not topic:
+            return jsonify({'error': 'Topic not found or not approved'}), 404
 
-    # 創建辯論
-    debate_id = db.execute_insert(
-        """
-        INSERT INTO Debates (topic_id, pros_user_id, cons_user_id, status)
-        VALUES (?, ?, ?, 'ONGOING')
-        """,
-        (topic_id, pros_user_id, cons_user_id)
-    )
+        # 檢查正方用戶是否存在
+        pros_user = db.execute_query(
+            "SELECT * FROM Users WHERE user_id = ?",
+            (pros_user_id,),
+            fetch_one=True
+        )
 
-    # 創建第一回合
-    round_id = db.execute_insert(
-        """
-        INSERT INTO Rounds (debate_id, round_number, status)
-        VALUES (?, 1, 'WAIT_PROS_STATEMENT')
-        """,
-        (debate_id,)
-    )
+        if not pros_user:
+            return jsonify({'error': f'Pros user (ID: {pros_user_id}) not found'}), 404
 
-    # 更新辯論回合數
-    db.execute_query(
-        "UPDATE Debates SET round_count = 1 WHERE debate_id = ?",
-        (debate_id,)
-    )
+        # 檢查反方用戶是否存在
+        cons_user = db.execute_query(
+            "SELECT * FROM Users WHERE user_id = ?",
+            (cons_user_id,),
+            fetch_one=True
+        )
 
-    return jsonify({
-        'message': 'Debate created successfully',
-        'debate_id': debate_id,
-        'round_id': round_id
-    }), 201
+        if not cons_user:
+            return jsonify({'error': f'Cons user (ID: {cons_user_id}) not found'}), 404
+
+        # 創建辯論
+        debate_id = db.execute_insert(
+            """
+            INSERT INTO Debates (topic_id, pros_user_id, cons_user_id, status)
+            VALUES (?, ?, ?, 'ONGOING')
+            """,
+            (topic_id, pros_user_id, cons_user_id)
+        )
+
+        # 創建第一回合
+        round_id = db.execute_insert(
+            """
+            INSERT INTO Rounds (debate_id, round_number, status)
+            VALUES (?, 1, 'WAIT_PROS_STATEMENT')
+            """,
+            (debate_id,)
+        )
+
+        # 更新辯論回合數
+        db.execute_query(
+            "UPDATE Debates SET round_count = 1 WHERE debate_id = ?",
+            (debate_id,)
+        )
+
+        return jsonify({
+            'message': 'Debate created successfully',
+            'debate_id': debate_id,
+            'round_id': round_id
+        }), 201
+
+    except Exception as e:
+        print(f"Error creating debate: {str(e)}")
+        return jsonify({'error': f'Failed to create debate: {str(e)}'}), 500
